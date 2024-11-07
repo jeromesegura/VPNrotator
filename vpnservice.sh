@@ -6,6 +6,11 @@ refreshVPN () {
     rm -r $vpn_path/ovpn_files/
     mkdir $vpn_path/ovpn_files
 
+    # Create local ovpn directory if it does not exist
+    if [ ! -d $vpn_path/local_ovpn/ ];then
+        mkdir $vpn_path/local_ovpn
+    fi
+
     for profile in $(ls $vpn_path/vpn_profiles/*);do
 
         # Grab variable names
@@ -25,6 +30,11 @@ refreshVPN () {
             rm $vpn_path/ovpn_files/$vpn_name/*.ovpn
         fi
 
+        # Create local ovpn sub directory if it does not exist
+        if [ ! -d $vpn_path/local_ovpn/$vpn_name ];then
+            mkdir $vpn_path/local_ovpn/$vpn_name
+        fi
+ 
         # Cleanup and setup temp directory
         echo "Delete temp folder..." >> $vpn_path/refresh.log
         rm -r $vpn_path/ovpn_tmp/
@@ -32,38 +42,44 @@ refreshVPN () {
         mkdir $vpn_path/ovpn_tmp
 
         if [ ! -z "$vpn_username" ] && [ ! -z "$vpn_password" ];then
-            # Download ovpn config files
-            echo "Downloading $vpn_name configs..." >> $vpn_path/refresh.log
-            wget --no-check-certificate -O $vpn_path/openvpn.zip $vpn_configs_url
-
-            # Unzip files
-            echo "Unzipping $vpn_name..." >> $vpn_path/refresh.log
-            unzip -q $vpn_path/openvpn.zip -d $vpn_path/ovpn_tmp
-
-            # Clean up and move ovpn files
-            echo "Cleaning up and moving $vpn_name ovpn files..." >> $vpn_path/refresh.log
-            rm $vpn_path/openvpn.zip
-            # Check if ovpn files are in current folder
-            success=0
-            if ls $vpn_path/ovpn_tmp/*.ovpn >/dev/null 2>&1;then
-                echo "ovpn files in main folder"
-                success=1
-            else
-                # Check for TCP folder
-                echo "Checking for TCP folder to find ovpn files..."
-                tcp_folder_exists=$(ls -d $vpn_path/ovpn_tmp/*/ | grep -c -i tcp)
-                if [ $tcp_folder_exists -eq 1 ];then
-                    cp $(ls -d $vpn_path/ovpn_tmp/*/ | grep -i tcp)/*.ovpn $vpn_path/ovpn_tmp/
+            if [ $vpn_configs_url = "local" ];then
+                # Local ovpn files
+                cp $vpn_path/local_ovpn/$vpn_name/*.ovpn $vpn_path/ovpn_files/$vpn_name/
+            else 
+                # Download ovpn config files
+                echo "Downloading $vpn_name configs..." >> $vpn_path/refresh.log
+                wget --no-check-certificate -O $vpn_path/openvpn.zip $vpn_configs_url
+                # Unzip files
+                echo "Unzipping $vpn_name..." >> $vpn_path/refresh.log
+                unzip -q $vpn_path/openvpn.zip -d $vpn_path/ovpn_tmp
+                # Clean up and move ovpn files
+                echo "Cleaning up and moving $vpn_name ovpn files..." >> $vpn_path/refresh.log
+                rm $vpn_path/openvpn.zip
+                # Check if ovpn files are in current folder
+                success=0
+                if ls $vpn_path/ovpn_tmp/*.ovpn >/dev/null 2>&1;then
+                    echo "ovpn files in main folder"
                     success=1
+                else
+                    # Check for TCP folder
+                    echo "Checking for TCP folder to find ovpn files..."
+                    tcp_folder_exists=$(ls -d $vpn_path/ovpn_tmp/*/ | grep -c -i tcp)
+                    if [ $tcp_folder_exists -eq 1 ];then
+                        cp $(ls -d $vpn_path/ovpn_tmp/*/ | grep -i tcp)/*.ovpn $vpn_path/ovpn_tmp/
+                        success=1
+                    fi
+                fi
+                if [ $success -eq 1 ];then
+                    echo "Renaming files with spaces..."
+                    for f in $vpn_path/ovpn_tmp/*\ *; do mv "$f" "${f// /_}" >/dev/null 2>&1; done
+                    echo "Moving ovpn files to $vpn_name folder..."
+                    mv $vpn_path/ovpn_tmp/*.ovpn $vpn_path/ovpn_files/$vpn_name/
+                    rm -r $vpn_path/ovpn_tmp/
+                else
+                    echo "Failed importing $vpn_name profile!" >> $vpn_path/refresh.log
+                    echo "" >> $vpn_path/refresh.log
                 fi
             fi
-            if [ $success -eq 1 ];then
-                echo "Renaming files with spaces..."
-                for f in $vpn_path/ovpn_tmp/*\ *; do mv "$f" "${f// /_}" >/dev/null 2>&1; done
-                echo "Moving ovpn files to $vpn_name folder..."
-                mv $vpn_path/ovpn_tmp/*.ovpn $vpn_path/ovpn_files/$vpn_name/
-                rm -r $vpn_path/ovpn_tmp/
-
             # Store user name and password
             echo "Creating user.txt files with creds for $vpn_name..." >> $vpn_path/refresh.log
             echo $vpn_username > $vpn_path/ovpn_files/$vpn_name/user.txt
@@ -77,10 +93,6 @@ refreshVPN () {
 
             echo "Successfully imported $vpn_name profile!" >> $vpn_path/refresh.log
             echo "" >> $vpn_path/refresh.log
-            else
-                echo "Failed importing $vpn_name profile!" >> $vpn_path/refresh.log
-                echo "" >> $vpn_path/refresh.log
-            fi
 
         else
             # Check for opensource VPN

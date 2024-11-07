@@ -108,7 +108,7 @@ countryselection () {
     number=1
     if [ -f $vpn_path/tempmenu.txt ];then rm $vpn_path/tempmenu.txt;fi
     for i in $(ls -d $vpn_path/ovpn_files/Country_*);do
-        nbovpn=$(ls $i | wc -l)
+        nbovpn=$(ls $i/*.ovpn 2>/dev/null | wc -l)
         if [ $nbovpn -gt 0 ];then
             echo "$number) $i ($nbovpn)" | sed 's@'"$vpn_path"'\/ovpn_files\/Country_@@g' >> $vpn_path/tempmenu.txt
             providers[$array_index]=$(echo $i | sed 's@'"$vpn_path"'\/ovpn_files\/@@g')
@@ -164,7 +164,7 @@ countrylocationselection () {
     if [ -f $vpn_path/tempmenu.txt ];then rm $vpn_path/tempmenu.txt;fi
         for i in $(ls -d $vpn_path/ovpn_files/Country_*);do
             # Only count ovpn profiles that do not contain 2 digits or more
-            nbovpn=$(ls $i | wc -l)
+            nbovpn=$(ls $i/*.ovpn 2>/dev/null | wc -l)
             if [ $nbovpn -gt 0 ];then
                 echo "$number) $i" | sed 's@'"$vpn_path"'\/ovpn_files\/Country_@@g' >> $vpn_path/tempmenu.txt
                 providers[$array_index]=$(echo $i | sed 's@'"$vpn_path"'\/ovpn_files\/@@g')
@@ -245,7 +245,7 @@ providerselection () {
     array_index=0
     number=1
     for i in $(ls -d $vpn_path/ovpn_files/* | grep -v "Country_");do
-        nbovpn=$(ls $i | wc -l)
+        nbovpn=$(ls $i/*.ovpn 2>/dev/null | wc -l)
         echo "$number) $(echo $i | xargs -n 1 basename) ($nbovpn)"
         providers[$array_index]=$(echo $i | xargs -n 1 basename)
         number=$(($number + 1))
@@ -323,6 +323,7 @@ setup_profiles () {
     read vpn_name
     echo "Please enter the URL to OVPN files (zip), followed by [ENTER]:"
     echo "(Example: https://vpn.hidemyass.com/vpn-config/vpn-configs.zip)"
+    echo "If the files are local, simply type local (place your .ovpn in: /home/vpn/local_ovpn/)"
     read vpn_configs_url
     echo "Please enter the username you use for this VPN account, followed by [ENTER]:"
     read vpn_username
@@ -453,7 +454,7 @@ updatecheck () {
     # Check current version
     currentversion=$(grep '^version_number=' VPN.sh | sed 's/version_number=//g')
     # Check latest version number
-    latestversion=$(curl -s https://raw.githubusercontent.com/malwareinfosec/VPNrotator/master/version.info)
+    latestversion=$(curl -s https://raw.githubusercontent.com/jeromesegura/VPNrotator/master/version.info)
     if [[ ( "$currentversion" == "$latestversion" ) ]];then
             clear
                 logo
@@ -477,7 +478,7 @@ updateperform () {
         declare -a CoreFiles=("VPN.sh" "countries.txt" "dn.sh" "up.sh" "vpnservice.sh" )
         echo "Downloading latest core files..."
         for val in ${CoreFiles[@]}; do
-            curl https://raw.githubusercontent.com/malwareinfosec/VPNrotator/master/$val --output $val
+            curl https://raw.githubusercontent.com/jeromesegura/VPNrotator/master/$val --output $val
         done
         echo $latestversion > version.info
         echo "Updated VPN Rotator to version: $latestversion"
@@ -600,7 +601,7 @@ choice_actions () {
 killservice
 
 # VPN Rotation version number
-version_number=2.9
+version_number=3.0
 
 # Adjust time
 timedatectl set-ntp false
