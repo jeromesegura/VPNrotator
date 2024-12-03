@@ -40,7 +40,8 @@ refreshVPN () {
         rm -r $vpn_path/ovpn_tmp/
         echo "Create temp folder..." >> $vpn_path/refresh.log
         mkdir $vpn_path/ovpn_tmp
-
+        
+        # We have VPN credentials
         if [ ! -z "$vpn_username" ] && [ ! -z "$vpn_password" ];then
             if [ $vpn_configs_url = "local" ];then
                 # Local ovpn files
@@ -94,8 +95,8 @@ refreshVPN () {
             echo "Successfully imported $vpn_name profile!" >> $vpn_path/refresh.log
             echo "" >> $vpn_path/refresh.log
 
+        # We don't have VPN credentials
         else
-            # Check for opensource VPN
             echo "Downloading CSV file..." >> $vpn_path/refresh.log
             curl $vpn_configs_url | dos2unix | tail -n +3 > $vpn_path/ovpn_tmp/configs.csv
             uniqueid=$(date +%s)
@@ -122,7 +123,7 @@ refreshVPN () {
         line=$(cat $vpn_path/countries.txt | grep $country)
         for i in ${line//,/ };do
             # Loop through VPN provider folders
-            for folder in $( ls -ICountry_* $vpn_path/ovpn_files/);do
+            for folder in $( ls -I Country_* $vpn_path/ovpn_files/);do
                 find $vpn_path/ovpn_files/$folder -iname "$i*" -exec cp {} $vpn_path/ovpn_files/Country_$country/ \;
             done
         done
@@ -321,6 +322,10 @@ do
             downcheck=$((downcheck+1))
         fi
     fi
+    
+    # Move rotate file from share
+    if [ -f /mnt/share/rotateads ];then mv /mnt/share/rotateads $vpn_path/rotate;fi
+    
     sleep 2
 
 done

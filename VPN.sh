@@ -205,9 +205,9 @@ preciseselection () {
     if [ -f $vpn_path/tempmenu.txt ];then rm $vpn_path/tempmenu.txt;fi
     # Look inside country folder
     for i in $(ls $vpn_path/ovpn_files/Country_$countryname);do
-        # Make sure that the location profile does not contain more than 3 digits (not a real city)
-        if [[ ! $i =~ [0-9]{2} ]] && [[ ! $i = [a-zA-Z]${countryname:1}.TCP.ovpn ]] && [[ ! $i = [a-zA-Z]${countryname:1}.ovpn ]];then
-            echo "$number) $i" | sed 's/.tcp//gi' | sed 's/.udp//gi' | sed 's/.ovpn//gi' | sed "s/$countryname.//g" | sed "s/[a-zA-Z][a-zA-Z][_-]//g" >> $vpn_path/tempmenu.txt
+        # Make sure that the location profile does not contain more than 5 digits (not a real city)
+        if [[ ! $i =~ [0-9]{4} ]] && [[ ! $i = [a-zA-Z]${countryname:1}.TCP.ovpn ]] && [[ ! $i = [a-zA-Z]${countryname:1}.ovpn ]];then
+            echo "$number) $i" | sed 's/.tcp//gi' | sed 's/.udp//gi' | sed 's/.ovpn//gi' >> $vpn_path/tempmenu.txt
             providers[$array_index]=$(echo $i | sed 's@'"$vpn_path"'\/ovpn_files\/@@g')
             number=$(($number + 1))
             array_index=$(($array_index + 1))
@@ -600,8 +600,8 @@ choice_actions () {
 # Kill any previously running vpnservice
 killservice
 
-# VPN Rotation version number
-version_number=3.0
+# VPNrotator version number
+version_number=3.1
 
 # Adjust time
 timedatectl set-ntp false
