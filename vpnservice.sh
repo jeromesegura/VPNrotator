@@ -323,9 +323,6 @@ do
         fi
     fi
     
-    # Move rotate file from share
-    if [ -f /mnt/share/rotateads ];then mv /mnt/share/rotateads $vpn_path/rotate;fi
-    
     sleep 2
 
 done

@@ -601,7 +601,7 @@ choice_actions () {
 killservice
 
 # VPNrotator version number
-version_number=3.1
+version_number=3.2
 
 # Adjust time
 timedatectl set-ntp false
