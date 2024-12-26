@@ -14,8 +14,10 @@ refresh () {
         echo ""
         echo "Refreshing VPN config files, please wait..."
         cat $vpn_path/refresh.log
-        sleep 5
+        sleep 1
     done
+    clear
+    logo
     cat $vpn_path/refresh.log
     sleep 2
     rm $vpn_path/refresh.log
@@ -275,29 +277,18 @@ providerselection () {
 }
 
 status () {
-    if [ -f $vpn_path/currentvpn.txt ];then
-        errors=$(tail -1 vpn.log | egrep -c '(Sequence Completed)')
-        waittime=0
-        while [ $errors -eq 0 ];do
-            clear
-            echo "Waiting for connection ($waittime/15)..."
-            tail -5 $vpn_path/vpn.log
-            sleep 2
-            errors=$(tail -1 vpn.log | egrep -c '(Sequence Completed)')
-            waittime=$((waittime +1))
-            if [ $waittime -eq 15 ];then
-                rm $vpn_path/currentvpn.txt
-                rm $vpn_path/custom
-                stopVPN
-                break
-            fi
-        done
+    waittime=0
+    while [ -f $vpn_path/rotate ] || [ -f $vpn_path/custom ] || [ -f $share_path/rotate ];do
+        clear
+        logo
+        echo "Waiting for connection ($waittime/15)..."
         tail -5 $vpn_path/vpn.log
-        sleep 5
-    else
-        echo "No connection to report yet, please try again in a few seconds..."
-        sleep 2
-    fi
+        sleep 1
+        waittime=$((waittime +1))
+        if [ $waittime -eq 15 ];then
+            break
+        fi
+    done
 }
 
 setup_droprange () {
@@ -502,8 +493,10 @@ choice_actions () {
             logo
             if [ -f $vpn_path/favorites.txt ];then
                 echo "Starting VPN with $(cat $vpn_path/providers.txt)..."
-                sleep 5
+                sleep 1
                 status
+                logo
+                menu
             fi
         fi
     fi
@@ -516,8 +509,10 @@ choice_actions () {
             clear
             logo
             echo "Starting VPN in $countryname..."
-            sleep 5
+            sleep 1
             status
+            logo
+            menu
         fi
     fi
 
@@ -529,8 +524,10 @@ choice_actions () {
             clear
             logo
             echo "Starting VPN in $countryname $location..."
-            sleep 5
+            sleep 1
             status
+            logo
+            menu
         fi
     fi
 
@@ -542,25 +539,30 @@ choice_actions () {
             clear
             logo
             echo "Starting VPN with $providername..."
-            sleep 5
+            sleep 1
             status
+            logo
+            menu
         fi
         fi
 
     if [ $choice -eq 6 ];then
-            touch $vpn_path/rotate
+        touch $vpn_path/rotate
+        if [ -f $vpn_path ];then rm currentvpn.txt;fi
+        if [ -f $share_path/currentvpn.txt ];then rm $share_path/currentvpn.txt;fi
         clear
         logo
         echo "Rotating within $(cat providers.txt | sed 's/Country_//g')..."
-        sleep 5
+        sleep 1
         status
+        logo
+        menu
     fi
 
     if [ $choice -eq 7 ];then
         clear
         logo
         refresh
-        sleep 2
     fi
 
     if [ $choice -eq 8 ];then
@@ -572,7 +574,7 @@ choice_actions () {
         logo
         echo "Stopping VPN..."
         stopVPN
-        sleep 5
+        sleep 2
     fi
 
     if [ $choice -eq 10 ];then
@@ -584,7 +586,7 @@ choice_actions () {
         logo
         echo "Quitting VPN Rotator..."
         stopVPN
-        sleep 5
+        sleep 2
         killservice
         clear
         if [ -f $vpn_path/stop ];then rm $vpn_path/stop;fi
@@ -601,7 +603,7 @@ choice_actions () {
 killservice
 
 # VPNrotator version number
-version_number=3.2
+version_number=3.3
 
 # Adjust time
 timedatectl set-ntp false
@@ -609,6 +611,13 @@ timedatectl set-ntp true
 
 # Assign current VPN directory based on where script runs from
 vpn_path=$(pwd)
+
+# Share path
+if [ -f $vpn_path/vpn.cfg ];then 
+    share_path=$(sed -n 's/^share_path = //p' $vpn_path/vpn.cfg )
+else
+    share_path=""
+fi
 
 # Check that IPTABLE and drop range exist
 if [ ! -f $vpn_path/drop.txt ];then
@@ -626,6 +635,7 @@ if [ -f $vpn_path/currentvpn.txt ];then rm $vpn_path/currentvpn.txt;fi
 if [ -f $vpn_path/rotate ];then rm $vpn_path/rotate;fi
 if [ -f $vpn_path/custom ];then rm $vpn_path/custom;fi
 if [ -f $vpn_path/tempmenu.txt ];then rm $vpn_path/tempmenu.txt;fi
+if [ -f $share_path/rotate ];then rm $share_path/rotate;fi
 clear
 
 # Check for VPNrotator update

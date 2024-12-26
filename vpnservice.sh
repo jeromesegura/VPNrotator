@@ -34,19 +34,19 @@ refreshVPN () {
         if [ ! -d $vpn_path/local_ovpn/$vpn_name ];then
             mkdir $vpn_path/local_ovpn/$vpn_name
         fi
- 
+
         # Cleanup and setup temp directory
         echo "Delete temp folder..." >> $vpn_path/refresh.log
         rm -r $vpn_path/ovpn_tmp/
         echo "Create temp folder..." >> $vpn_path/refresh.log
         mkdir $vpn_path/ovpn_tmp
-        
+
         # We have VPN credentials
         if [ ! -z "$vpn_username" ] && [ ! -z "$vpn_password" ];then
             if [ $vpn_configs_url = "local" ];then
                 # Local ovpn files
                 cp $vpn_path/local_ovpn/$vpn_name/*.ovpn $vpn_path/ovpn_files/$vpn_name/
-            else 
+            else
                 # Download ovpn config files
                 echo "Downloading $vpn_name configs..." >> $vpn_path/refresh.log
                 wget --no-check-certificate -O $vpn_path/openvpn.zip $vpn_configs_url
@@ -91,9 +91,7 @@ refreshVPN () {
             for i in $(ls $vpn_path/ovpn_files/$vpn_name/*.ovpn);do sed -i "s@auth-user-pass@auth-user-pass $vpn_path\/ovpn_files\/$vpn_name\/user.txt@g" $i;done
             for i in $(ls $vpn_path/ovpn_files/$vpn_name/*.ovpn);do echo "" >> $i;done
             for i in $(ls $vpn_path/ovpn_files/$vpn_name/*.ovpn);do echo "log $vpn_path/vpn.log" >> $i;done
-
-            echo "Successfully imported $vpn_name profile!" >> $vpn_path/refresh.log
-            echo "" >> $vpn_path/refresh.log
+            echo "Successfully loaded $vpn_name profile!" >> $vpn_path/refresh.log
 
         # We don't have VPN credentials
         else
@@ -113,7 +111,7 @@ refreshVPN () {
     done
 
     # Adding countries
-    echo "Sorting ovpn files by country..." >> $vpn_path/refresh.log
+    echo "Updating country list..." >> $vpn_path/refresh.log
     for country in $(cat $vpn_path/countries.txt | awk -F ',' '{print $1}');do
         # Create folder if it does not exist
         if [ ! -d $vpn_path/ovpn_files/Country_$country ];then mkdir $vpn_path/ovpn_files/Country_$country;fi
@@ -131,9 +129,7 @@ refreshVPN () {
     # Clean up country mismatch
     find $vpn_path/ovpn_files/Country_UK -type f -iname ukraine* -exec rm -f {} \;
 
-    echo "" >> $vpn_path/refresh.log
-    echo "" >> $vpn_path/refresh.log
-    echo "All done!" >> $vpn_path/refresh.log
+    echo "Done!" >> $vpn_path/refresh.log
 
     rm $vpn_path/refresh
     if [ -f $vpn_path/stop ];then rm $vpn_path/stop;fi
@@ -171,7 +167,6 @@ startVPN () {
     echo "Starting $provider with access point $location"
     if [ -f vpn.log ];then echo "" > vpn.log;fi
     if [ -f $vpn_path/refresh ];then rm $vpn_path/refresh;fi
-    echo "$provider $location" > currentvpn.txt
     openvpn --config "$vpn_path/ovpn_files/$provider/$location" --script-security 2 --float --route-up $vpn_path/up.sh --down $vpn_path/dn.sh --daemon 2>&1
     echo "$location"
     echo $(date) > date.log
@@ -192,30 +187,30 @@ checkVPN () {
         echo "VPN being refreshed or restarted..."
     else
         echo "Checking VPN status..."
-        errors=$(tail -1 vpn.log | egrep -c '(Sequence Completed)')
-        pingcheck=$(ping -c 1 -I tun0 -q google.com 2>&1 | grep -c '1 packets transmitted')
-        echo "##############"
-        echo "Pingcheck results= $pingcheck (0 means down, 1 means up)"
-        echo "##############"
-        if [ $errors -eq 0 ] || [ $pingcheck -eq 0 ];then
-            echo "VPN DOWN!!!!!!, rotating now...."
-            echo "Error with $location on $(date) errors=$errors pingcheck=$pingcheck" >> error.log
-            killOVPN
-            rm vpn.log
-            currentprovider
-            startVPN
-            #increment
-            sleep 20
-            if [ -f $vpn_path/stop ];then
-                break
-            else
+        success=$(tail -1 vpn.log | egrep -c '(Sequence Completed)')
+        waittime=0
+        while [ $success -eq 0 ];do
+            if [ -f $vpn_path/stop ];then break;fi
+            clear
+            echo "Waiting for connection ($waittime/15)..."
+            tail -5 vpn.log
+            sleep 1
+            success=$(tail -1 vpn.log | egrep -c '(Sequence Completed)')
+            waittime=$((waittime +1))
+            if [ $waittime -eq 15 ];then
+                echo "Failed to connect, trying again!"
+                echo "Error with $location on $(date) errors=$errors pingcheck=$pingcheck" >> error.log
+                killOVPN
+                rm vpn.log
+                currentprovider
+                startVPN
                 checkVPN
             fi
-        else
-            echo "VPN connected OK"
-            echo "$provider $location" > currentvpn.txt
-        fi
-    fi
+        done
+        echo "VPN connected OK"
+        echo "$provider $location" > currentvpn.txt
+        echo "$provider $location" > $share_path/currentvpn.txt
+     fi
 }
 
 readproviders () {
@@ -237,6 +232,13 @@ readproviders () {
 
 # Assign current VPN directory based on where script runs from
 vpn_path=$(pwd)
+
+# Share path
+if [ -f $vpn_path/vpn.cfg ];then 
+    share_path=$(sed -n 's/^share_path = //p' $vpn_path/vpn.cfg )
+else
+    share_path=""
+fi
 
 # Set PATH variable
 export PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin"
@@ -266,7 +268,7 @@ do
         refreshVPN
     fi
 
-    if [ -f rotate ];then
+    if [ -f $share_path/rotate ] || [ -f rotate ];then
         echo "Rotating IP address..."
         killOVPN
         rm off
@@ -274,10 +276,9 @@ do
         if [ -f currentvpn.txt ];then rm currentvpn.txt;fi
         currentprovider
         startVPN
-        #increment
-        rm rotate
-                sleep 15
         checkVPN
+        rm $share_path/rotate
+        rm rotate
     fi
 
     if [ -f custom ];then
@@ -293,14 +294,11 @@ do
             readproviders
             currentprovider
             startVPN
-            #increment
-            sleep 15
             checkVPN
         else
             startVPN
-            sleep 15
             checkVPN
-                fi
+        fi
         rm custom
         if [ -f start ];then rm start;fi
     fi
@@ -310,7 +308,7 @@ do
         touch off
     fi
 
-    # Check if VPN is down
+    # Check if VPN is down after 1 minute
     if [ -f off ];then
         echo "VPN has not started or is off"
     else
@@ -322,7 +320,7 @@ do
             downcheck=$((downcheck+1))
         fi
     fi
-    
-    sleep 2
+
+    sleep 1
 
 done
