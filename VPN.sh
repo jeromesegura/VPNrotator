@@ -49,7 +49,7 @@ logo () {
 menu () {
     echo ""
     if [ -f $vpn_path/currentvpn.txt ];then
-        echo "Currently connected to: $(cat currentvpn.txt)"
+        echo "Currently connected to: $(cat currentvpn.txt | sed 's/Country_//g' | sed 's/.ovpn//gi')"
         echo "Connection established on $(cat date.log)"
     else
         echo "** Not currently connected to the VPN **"
@@ -58,7 +58,7 @@ menu () {
     echo "1) Check VPN connection status"
     echo "2) Start VPN from favorite"
     echo "3) Start VPN in new country"
-    echo "4) Start VPN in new city"
+    echo "4) Start VPN in new state/city"
     echo "5) Start VPN with new provider"
     echo "6) Rotate VPN"
     echo "7) Refresh VPN .ovpn files"
@@ -133,7 +133,7 @@ countryselection () {
         provider=${providers[$providersindex]}
         countryname=$(echo $provider | sed 's/Country_//g')
         # Check that the folder is not empty
-        if [ $(ls $vpn_path/ovpn_files/$provider | wc -l) -eq 0 ];then 
+        if [ $(ls $vpn_path/ovpn_files/$provider | wc -l) -eq 0 ];then
             clear
             echo "No VPN profiles in this folder!"
             sleep 2
@@ -168,7 +168,7 @@ countrylocationselection () {
             # Only count ovpn profiles that do not contain 2 digits or more
             nbovpn=$(ls $i/*.ovpn 2>/dev/null | wc -l)
             if [ $nbovpn -gt 0 ];then
-                echo "$number) $i" | sed 's@'"$vpn_path"'\/ovpn_files\/Country_@@g' >> $vpn_path/tempmenu.txt
+                echo "$number) $i" | sed 's@'"$vpn_path"'\/ovpn_files\/Country_@@g' | sed 's/.ovpn//gi' >> $vpn_path/tempmenu.txt
                 providers[$array_index]=$(echo $i | sed 's@'"$vpn_path"'\/ovpn_files\/@@g')
                 number=$(($number + 1))
                 array_index=$(($array_index + 1))
@@ -207,13 +207,10 @@ preciseselection () {
     if [ -f $vpn_path/tempmenu.txt ];then rm $vpn_path/tempmenu.txt;fi
     # Look inside country folder
     for i in $(ls $vpn_path/ovpn_files/Country_$countryname);do
-        # Make sure that the location profile does not contain more than 5 digits (not a real city)
-        if [[ ! $i =~ [0-9]{4} ]] && [[ ! $i = [a-zA-Z]${countryname:1}.TCP.ovpn ]] && [[ ! $i = [a-zA-Z]${countryname:1}.ovpn ]];then
-            echo "$number) $i" | sed 's/.tcp//gi' | sed 's/.udp//gi' | sed 's/.ovpn//gi' >> $vpn_path/tempmenu.txt
-            providers[$array_index]=$(echo $i | sed 's@'"$vpn_path"'\/ovpn_files\/@@g')
-            number=$(($number + 1))
-            array_index=$(($array_index + 1))
-        fi
+        echo "$number) $i" | sed 's/.ovpn//gi' >> $vpn_path/tempmenu.txt
+        providers[$array_index]=$(echo $i | sed 's@'"$vpn_path"'\/ovpn_files\/@@g')
+        number=$(($number + 1))
+        array_index=$(($array_index + 1))
     done
     if [ -f $vpn_path/tempmenu.txt ];then pr -3 -t $vpn_path/tempmenu.txt;fi
     echo "0) Back"
@@ -224,7 +221,7 @@ preciseselection () {
     if ! [[ $selectionnumber =~ $re ]] ; then
        echo "error: Not a number" >&2; countrylocationselection
     fi
-    if (( selectionnumber >= 1 && selectionnumber < number ));then 
+    if (( selectionnumber >= 1 && selectionnumber < number ));then
         # Selected location
         providersindex=$(($selectionnumber -1))
         location=${providers[$providersindex]}
@@ -603,7 +600,7 @@ choice_actions () {
 killservice
 
 # VPNrotator version number
-version_number=3.3
+version_number=3.4
 
 # Adjust time
 timedatectl set-ntp false
@@ -613,7 +610,7 @@ timedatectl set-ntp true
 vpn_path=$(pwd)
 
 # Share path
-if [ -f $vpn_path/vpn.cfg ];then 
+if [ -f $vpn_path/vpn.cfg ];then
     share_path=$(sed -n 's/^share_path = //p' $vpn_path/vpn.cfg )
 else
     share_path=""

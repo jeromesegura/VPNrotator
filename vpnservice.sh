@@ -122,7 +122,7 @@ refreshVPN () {
         for i in ${line//,/ };do
             # Loop through VPN provider folders
             for folder in $( ls -I Country_* $vpn_path/ovpn_files/);do
-                find $vpn_path/ovpn_files/$folder -iname "$i*" -exec cp {} $vpn_path/ovpn_files/Country_$country/ \;
+                find $vpn_path/ovpn_files/$folder -iname "$i.*" -exec cp {} $vpn_path/ovpn_files/Country_$country/ \;
             done
         done
     done
