@@ -144,6 +144,4 @@ The naming convention for the ovpn files is: ``[2 letter country code].[State/Ci
 
 Example: ``US.ILLINOIS.tcp.ovpn``
 
-You may wish to use one of the existing VPN provider configurations located [here](https://github.com/jeromesegura/VPNrotator/tree/master/configs) (please note you will need to purchase a subscription from the respective providers).
-
 ![alt text](https://github.com/malwareinfosec/vpnrotator/blob/master/img/rotator.gif)
