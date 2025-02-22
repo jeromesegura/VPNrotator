@@ -118,7 +118,15 @@ countryselection () {
             array_index=$(($array_index + 1))
         fi
     done
-    pr -3 -t $vpn_path/tempmenu.txt
+    if [ -f $vpn_path/tempmenu.txt ];then
+        pr -3 -t $vpn_path/tempmenu.txt
+    else
+        echo "######################################"
+        echo "Could not read ovpn configuration files!"
+        echo "Format: [2 letter country code].[State/City(optional)].[protocol](optional).ovpn"
+        echo "Example: US.ILLINOIS.tcp.ovpn"
+        echo "######################################"
+    fi
     echo "0) Back to main menu"
     echo ""
     echo -n "Enter your choice and press [ENTER]: "
@@ -174,7 +182,15 @@ countrylocationselection () {
                 array_index=$(($array_index + 1))
             fi
         done
-        pr -3 -t $vpn_path/tempmenu.txt
+        if [ -f $vpn_path/tempmenu.txt ];then
+            pr -3 -t $vpn_path/tempmenu.txt
+        else
+            echo "######################################"
+            echo "Could not read ovpn configuration files!"
+            echo "Format: [2 letter country code].[State/City(optional)].[protocol](optional).ovpn"
+            echo "Example: US.ILLINOIS.tcp.ovpn"
+            echo "######################################"
+        fi
         echo "0) Back to main menu"
         echo ""
         echo -n "Enter your choice and press [ENTER]: "
@@ -313,6 +329,8 @@ setup_profiles () {
     echo "(Example: https://vpn.hidemyass.com/vpn-config/vpn-configs.zip)"
     echo "If the files are local, simply type local (place your .ovpn in: /home/vpn/local_ovpn/)"
     read vpn_configs_url
+    echo "If the zip is password-protected, please enter the password, or leave blank, followed by [ENTER]:"
+    read vpn_configs_password
     echo "Please enter the username you use for this VPN account, followed by [ENTER]:"
     read vpn_username
     echo "Please enter the password you use for this VPN account, followed by [ENTER]:"
@@ -324,6 +342,7 @@ setup_profiles () {
         if [ ! -d $vpn_path/vpn_profiles ];then mkdir $vpn_path/vpn_profiles/;fi
         echo "vpn_name=$vpn_name" > $vpn_path/vpn_profiles/$vpn_name.txt
         echo "vpn_configs_url=$vpn_configs_url" >> $vpn_path/vpn_profiles/$vpn_name.txt
+        echo "vpn_configs_password=$vpn_configs_password" >> $vpn_path/vpn_profiles/$vpn_name.txt
         echo "vpn_username=$vpn_username" >> $vpn_path/vpn_profiles/$vpn_name.txt
         echo "vpn_password=$vpn_password" >> $vpn_path/vpn_profiles/$vpn_name.txt
         echo ""
@@ -600,7 +619,7 @@ choice_actions () {
 killservice
 
 # VPNrotator version number
-version_number=3.4
+version_number=3.5
 
 # Adjust time
 timedatectl set-ntp false

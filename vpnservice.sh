@@ -17,6 +17,7 @@ refreshVPN () {
         vpn_name=$(grep 'vpn_name' $profile | awk -F '=' '{print $2}')
         echo "Configuring profile for $vpn_name..." >> $vpn_path/refresh.log
         vpn_configs_url=$(grep 'vpn_configs_url' $profile | awk -F '=' '{print $2}')
+        vpn_configs_password=$(grep 'vpn_configs_password' $profile | awk -F '=' '{print $2}')
         vpn_username=$(grep 'vpn_username' $profile | awk -F '=' '{print $2}')
         vpn_password=$(grep 'vpn_password' $profile | awk -F '=' '{print $2}')
 
@@ -51,8 +52,14 @@ refreshVPN () {
                 echo "Downloading $vpn_name configs..." >> $vpn_path/refresh.log
                 wget --no-check-certificate -O $vpn_path/openvpn.zip $vpn_configs_url
                 # Unzip files
-                echo "Unzipping $vpn_name..." >> $vpn_path/refresh.log
-                unzip -q $vpn_path/openvpn.zip -d $vpn_path/ovpn_tmp
+                # Check if the zip is password-protected
+                if [ ! -z "$vpn_configs_password" ];then
+                    echo "Unzipping password-protected $vpn_name..." >> $vpn_path/refresh.log
+                    unzip -P $vpn_configs_password -q $vpn_path/openvpn.zip -d $vpn_path/ovpn_tmp
+                else
+                    echo "Unzipping $vpn_name..." >> $vpn_path/refresh.log
+                    unzip -q $vpn_path/openvpn.zip -d $vpn_path/ovpn_tmp
+                fi
                 # Clean up and move ovpn files
                 echo "Cleaning up and moving $vpn_name ovpn files..." >> $vpn_path/refresh.log
                 rm $vpn_path/openvpn.zip
