@@ -194,7 +194,7 @@ checkVPN () {
         echo "VPN being refreshed or restarted..."
     else
         echo "Checking VPN status..."
-        success=$(tail -1 vpn.log | egrep -c '(Sequence Completed)')
+        success=$(tail -5 vpn.log | egrep -c '(Sequence Completed)')
         waittime=0
         while [ $success -eq 0 ];do
             if [ -f $vpn_path/stop ];then break;fi
@@ -202,7 +202,7 @@ checkVPN () {
             echo "Waiting for connection ($waittime/15)..."
             tail -5 vpn.log
             sleep 1
-            success=$(tail -1 vpn.log | egrep -c '(Sequence Completed)')
+            success=$(tail -5 vpn.log | egrep -c '(Sequence Completed)')
             waittime=$((waittime +1))
             if [ $waittime -eq 15 ];then
                 echo "Failed to connect, trying again!"
