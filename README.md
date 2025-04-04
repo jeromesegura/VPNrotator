@@ -111,11 +111,11 @@ Add the following at the end of the file if you want to disable IPV6
         net.ipv6.conf.lo.disable_ipv6 = 1
         net.ipv6.conf.eth0.disable_ipv6 = 1
 
-## 6) Reboot VM
+## 5) Reboot VM
 
 `/sbin/reboot`
 
-## 7) Quick install
+## 6) Quick install
 
 ssh into the VPNrotator VM/machine (replace with your own IP address)
 
@@ -145,7 +145,7 @@ Run main script
 
 ``./VPN.sh``
 
-## 8) First time use
+## 7) First time use
 
 On first setup, you will need to create profiles to add new VPN providers. This requires the URL to a ZIP for .ovpn files and your username and password for that VPN provider. The script will then download and sort all the .ovpn files automatically into folders by country and provider.
 
