@@ -37,8 +37,8 @@ This project found its name (VPN Rotator) in the act of rotating or cycling thro
 
 ## 2) Install Debian with the following options
 
-- Download Debian ISO (debian-10.1.0-amd64-xfce-CD-1.iso)
-- Choose Install (second option)
+- Download Debian ISO
+- Choose Install
 
 - Primary network interface
 -> Chose the first one
@@ -61,9 +61,9 @@ Standard System utilities
 
 `apt-get install psmisc unzip openvpn curl dos2unix iptables-persistent`
 
-## 4) Configure /etc/network/interfaces
+## 4) Configure network settings
 
-`nano /etc/network/interfaces`
+### `/etc/network/interfaces`
 
 **Note: to go for an easy configuration, you can simply set your first network interface to dhcp (instead of static).**
 
@@ -75,8 +75,8 @@ Standard System utilities
         iface lo inet loopback
 
         # The bridged network interface
-        allow-hotplug enp0s3
-        iface enp0s3 inet static
+        allow-hotplug enp0s1
+        iface enp0s1 inet static
         address 192.168.1.168
         netmask 255.255.255.0
         gateway 192.168.1.1
@@ -85,22 +85,19 @@ Standard System utilities
         dns-nameservers 1.1.1.1 1.0.0.1
 
         # the internal-only network interface
-        allow-hotplug enp0s8
-        iface enp0s8 inet static
-        address 192.168.3.1
+        allow-hotplug enp0s2
+        iface enp0s2 inet static
+        address 192.168.2.1
         netmask 255.255.255.0
-        network 192.168.3.0
-        broadcast 192.168.3.255
+        network 192.168.2.0
+        broadcast 192.168.2.255
         dns-nameservers 1.1.1.1 1.0.0.1
 
+### `/etc/resolv.conf`
 
-## 5) Configure additional network settings
+Add `nameserver 192.168.1.1` (or whatever your local gateway is)
 
-`nano /etc/resolv.conf`
-
-Add `nameserver 192.168.0.1` (or whatever your local gateway is)
-
-`nano /etc/sysctl.conf`
+### `/etc/sysctl.conf`
 
 Uncomment `net.ipv4.ip_forward=1`
 
@@ -114,27 +111,41 @@ Add the following at the end of the file if you want to disable IPV6
         net.ipv6.conf.lo.disable_ipv6 = 1
         net.ipv6.conf.eth0.disable_ipv6 = 1
 
-## 6) Copy necessary files
-
-(individually or simply ZIP them and then SCP)
-
-        scp countries.txt vpn@192.168.1.168:/home/vpn/
-        scp dn.sh vpn@192.168.1.168:/home/vpn/
-        scp up.sh vpn@192.168.1.168:/home/vpn/
-        scp VPN.sh vpn@192.168.1.168:/home/vpn/
-        scp vpnservice.sh vpn@192.168.1.168:/home/vpn/
-
-Make scripts executable
-
-`chmod +x *.sh`
-
-## 7) Reboot VM
+## 6) Reboot VM
 
 `/sbin/reboot`
 
-## 8) Launch VPN rotator
+## 7) Quick install
 
-Login as root then, run `./VPN.sh`
+ssh into the VPNrotator VM/machine (replace with your own IP address)
+
+``ssh vpn@192.168.1.168``
+
+Download update script and rename it as install.sh
+
+``curl - o install.sh https://raw.githubusercontent.com/jeromesegura/VPNrotator/refs/heads/master/update.sh``
+
+Make script executable
+
+``chmod +x install.sh``
+
+Run script
+
+``./install.sh``
+
+Make all scripts executable
+
+``chmod +x *.sh``
+
+Become admin
+
+``su``
+
+Run main script
+
+``./VPN.sh``
+
+## 8) First time use
 
 On first setup, you will need to create profiles to add new VPN providers. This requires the URL to a ZIP for .ovpn files and your username and password for that VPN provider. The script will then download and sort all the .ovpn files automatically into folders by country and provider.
 
