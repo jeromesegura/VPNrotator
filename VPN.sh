@@ -30,7 +30,7 @@ stopVPN () {
 killOVPN () {
     echo "Killing OVPN..."
     for i in {1..4}; do killall openvpn;done
-    if [ -f currentvpn.txt ];then rm currentvpn.txt;fi
+    if [ -f $vpn_path/currentvpn.txt ];then rm $vpn_path/currentvpn.txt;fi
 }
 
 logo () {
@@ -487,7 +487,7 @@ updateperform () {
         for val in ${CoreFiles[@]}; do
             curl https://raw.githubusercontent.com/jeromesegura/VPNrotator/master/$val --output $val
         done
-        echo $latestversion > version.info
+        echo $latestversion > $vpn_path/version.info
         echo "Updated VPN Rotator to version: $latestversion"
         echo "Please run VPN.sh to restart the VPN"
         exit
@@ -619,7 +619,7 @@ choice_actions () {
 killservice
 
 # VPNrotator version number
-version_number=3.6
+version_number=3.7
 
 # Adjust time
 timedatectl set-ntp false
@@ -630,6 +630,7 @@ vpn_path=$(pwd)
 
 # Share path
 if [ -f $vpn_path/vpn.cfg ];then
+	shared_vpn=true
     share_path=$(sed -n 's/^share_path = //p' $vpn_path/vpn.cfg )
 else
     share_path=""
@@ -640,17 +641,12 @@ if [ ! -f $vpn_path/drop.txt ];then
     setup_droprange
 fi
 
-# Check for VPN profiles and go through initial setup if needed
-if [ ! "$(ls -A $vpn_path/vpn_profiles)" ]; then
-    mkdir $vpn_path/vpn_profiles
-    setup_profiles
-fi
-
 # Clean up
 if [ -f $vpn_path/currentvpn.txt ];then rm $vpn_path/currentvpn.txt;fi
 if [ -f $vpn_path/rotate ];then rm $vpn_path/rotate;fi
 if [ -f $vpn_path/custom ];then rm $vpn_path/custom;fi
 if [ -f $vpn_path/tempmenu.txt ];then rm $vpn_path/tempmenu.txt;fi
+if [ -f $vpn_path/start ];then rm $vpn_path/start;fi
 if [ -f $share_path/rotate ];then rm $share_path/rotate;fi
 clear
 
@@ -658,10 +654,20 @@ clear
 updatecheck
 
 # Start vpn service
+echo "Start vpnservice..."
+sleep 2
 bash $vpn_path/vpnservice.sh &>/dev/null &
 
-# Download latest VPN configs
-refresh
+# Check for VPN profiles and go through initial setup if needed
+if [ ! "$(ls -A $vpn_path/vpn_profiles)" ]; then
+	touch $vpn_path/off
+    mkdir $vpn_path/vpn_profiles
+    setup_profiles
+    rm $vpn_path/off
+else
+	# Download latest VPN configs
+	refresh
+fi
 
 # Menu and infinite loop
 while :
@@ -669,6 +675,10 @@ do
     clear
     logo
     menu
-    read -t 60 choice
+    if [ "$shared_vpn" ]; then
+    	read -t 2 choice
+    else
+    	read -t 60 choice
+    fi
     choice_actions
 done
